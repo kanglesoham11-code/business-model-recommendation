@@ -1,0 +1,178 @@
+// Prisma schema for Startup Model Planner
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String?
+  name          String?
+  provider      String   @default("local") // local, google
+  providerId    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastLoginAt   DateTime?
+
+  sessions      Session[]
+  questionnaires Questionnaire[]
+  recommendations Recommendation[]
+  reports       Report[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("sessions")
+}
+
+model Questionnaire {
+  id        String   @id @default(uuid())
+  userId    String?
+  status    String   @default("in_progress") // in_progress, completed
+  
+  // Financial Parameters (6)
+  startupBudget         Int?
+  monthlyBurnTolerance  Int?
+  targetARR             Int?
+  timeToProfitability   Int?     // months
+  existingRevenue       Int?
+  maxCAC                Int?
+  
+  // Operational Parameters (6)
+  inventoryWillingness  Int?     // 1-5 scale
+  logisticsCapability   Int?     // 1-5 scale
+  teamSize              Int?
+  hoursPerWeek          Int?
+  supplierAccess        Boolean?
+  warehouseAvailability Boolean?
+  
+  // Market Parameters (6)
+  targetGeography       String?
+  nicheType             String?
+  businessType          String?  // B2B, B2C, B2B2C
+  competitionLevel      Int?     // 1-5 scale
+  existingAudienceSize  Int?
+  brandRecognition      Int?     // 1-5 scale
+  
+  // Skill Parameters (6)
+  techStackProficiency  Int?     // 1-5 scale
+  contentCreationAbility Int?    // 1-5 scale
+  seoSemExperience      Int?     // 1-5 scale
+  designSkills          Int?     // 1-5 scale
+  salesExperience       Int?     // 1-5 scale
+  dataAnalysisCapability Int?    // 1-5 scale
+  
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user            User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  recommendations Recommendation[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("questionnaires")
+}
+
+model Recommendation {
+  id              String   @id @default(uuid())
+  userId          String?
+  questionnaireId String
+  
+  // Top 3 recommended models with scores
+  topModels       Json     // Array of {model, score, confidence}
+  allScores       Json     // Complete scoring breakdown for all 8 models
+  
+  // Metadata
+  processingTime  Int?     // milliseconds
+  engineVersion   String?
+  
+  createdAt       DateTime @default(now())
+
+  user          User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  questionnaire Questionnaire @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+  reports       Report[]
+
+  @@index([userId])
+  @@index([questionnaireId])
+  @@map("recommendations")
+}
+
+model Report {
+  id               String   @id @default(uuid())
+  userId           String?
+  recommendationId String
+  
+  format           String   @default("pdf") // pdf, json
+  s3Key            String?
+  s3Url            String?
+  fileSize         Int?     // bytes
+  
+  createdAt        DateTime @default(now())
+
+  user           User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  recommendation Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([recommendationId])
+  @@map("reports")
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(uuid())
+  userId     String?
+  eventType  String   // page_view, questionnaire_start, questionnaire_complete, etc.
+  eventData  Json?
+  userAgent  String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
+
+model BusinessModel {
+  id          String @id @default(uuid())
+  slug        String @unique
+  name        String
+  description String
+  icon        String
+  
+  // Model characteristics
+  startupCost       String  // $, $$, $$$
+  timeToRevenue     String  // e.g., "1-3 months"
+  complexityIndex   Int     // 1-5
+  marginPotential   Int     // 1-5
+  scalabilityScore  Int     // 1-5
+  
+  // Detailed info
+  pros              Json    // Array of strings
+  cons              Json    // Array of strings
+  bestFor           Json    // Array of strings
+  platforms         Json    // Array of platform suggestions
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("business_models")
+}

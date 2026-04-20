@@ -1,0 +1,26 @@
+{
+  "name": "startup-model-planner",
+  "version": "1.0.0",
+  "description": "AI-assisted platform for e-commerce business model recommendations",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "recommendation-engine"
+  ],
+  "scripts": {
+    "install:all": "npm install && npm install --workspace=frontend && npm install --workspace=backend && npm install --workspace=recommendation-engine",
+    "dev": "concurrently \"npm run dev --workspace=frontend\" \"npm run dev --workspace=backend\" \"npm run dev --workspace=recommendation-engine\"",
+    "build": "npm run build --workspace=frontend && npm run build --workspace=backend",
+    "test": "npm run test --workspaces",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}
