@@ -3,7 +3,13 @@ const axios = require('axios');
 const logger = require('../utils/logger');
 
 const prisma = new PrismaClient();
-const RECOMMENDATION_ENGINE_URL = process.env.RECOMMENDATION_ENGINE_URL || 'http://localhost:5001';
+// Helper to construct URLs for recommendation-engine internal service binding
+const getRecommendationEngineUrl = (path = '') => {
+  const baseUrl = process.env.RECOMMENDATION_ENGINE_URL || 'http://localhost:5001';
+  const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  return new URL(cleanPath, normalizedBase).toString();
+};
 
 // Generate recommendation
 exports.generate = async (req, res, next) => {
@@ -37,9 +43,10 @@ exports.generate = async (req, res, next) => {
       });
     }
 
-    // Call recommendation engine
+    // Call recommendation engine via service binding
+    const engineUrl = getRecommendationEngineUrl('api/recommend');
     const engineResponse = await axios.post(
-      `${RECOMMENDATION_ENGINE_URL}/api/recommend`,
+      engineUrl,
       questionnaire,
       { timeout: 10000 }
     );
@@ -128,9 +135,10 @@ exports.simulate = async (req, res, next) => {
       dataAnalysisCapability: 3
     };
 
-    // Call the recommendation engine with the simulated profile
+    // Call the recommendation engine with the simulated profile via service binding
+    const engineUrl = getRecommendationEngineUrl('api/recommend');
     const engineResponse = await axios.post(
-      `${RECOMMENDATION_ENGINE_URL}/api/recommend`,
+      engineUrl,
       simulatedProfile,
       { timeout: 30000 }
     );
